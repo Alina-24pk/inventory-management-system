@@ -1,0 +1,150 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password      String
+  name          String
+  role          String   @default("USER")
+  refreshToken  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  orders        Order[]
+  stockMovements StockMovement[] @relation("UserStockMovements")
+  
+  inventory     Inventory[] @relation("UserInventory")
+}
+
+model Category {
+  id            String     @id @default(cuid())
+  name          String     @unique
+  description   String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  products      Product[]
+}
+
+model Supplier {
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String?
+  address       String?
+  contactPerson String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  products      Product[]
+  orders        Order[]
+}
+
+model Product {
+  id            String   @id @default(cuid())
+  sku           String   @unique
+  name          String
+  description   String?
+  price         Float
+  cost          Float
+  barcode       String?  @unique
+  imageUrl      String?
+  minStock      Int      @default(10)
+  maxStock      Int      @default(1000)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id])
+  
+  supplierId    String?
+  supplier      Supplier? @relation(fields: [supplierId], references: [id])
+  
+  inventory     Inventory? @relation("ProductInventory")
+  
+  stockMovements StockMovement[] @relation("ProductStockMovements")
+  
+  orderItems    OrderItem[]
+}
+
+model Inventory {
+  id            String   @id @default(cuid())
+  quantity      Int      @default(0)
+  reservedQty   Int      @default(0)
+  location      String?
+  lastCountedAt DateTime?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  productId     String   @unique
+  product       Product  @relation("ProductInventory", fields: [productId], references: [id])
+  
+  stockMovements StockMovement[] @relation("ProductStockMovements")
+  
+  userId        String
+  user          User     @relation("UserInventory", fields: [userId], references: [id])
+}
+
+model StockMovement {
+  id            String   @id @default(cuid())
+  type          String
+  quantity      Int
+  reason        String?
+  reference     String?
+  createdAt     DateTime @default(now())
+  
+  productId     String
+  product       Product  @relation("ProductStockMovements", fields: [productId], references: [id])
+  
+  inventoryId   String
+  inventory     Inventory @relation("ProductStockMovements", fields: [inventoryId], references: [id])
+  
+  userId        String
+  user          User     @relation("UserStockMovements", fields: [userId], references: [id])
+}
+
+model Order {
+  id            String       @id @default(cuid())
+  orderNumber   String       @unique
+  status        String       @default("PENDING")
+  totalAmount   Float        @default(0)
+  notes         String?
+  orderDate     DateTime     @default(now())
+  expectedDate  DateTime?
+  receivedDate  DateTime?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+  
+  userId        String
+  user          User         @relation(fields: [userId], references: [id])
+  
+  supplierId    String?
+  supplier      Supplier?    @relation(fields: [supplierId], references: [id])
+  
+  items         OrderItem[]
+}
+
+model OrderItem {
+  id            String   @id @default(cuid())
+  quantity      Int
+  received      Int       @default(0)
+  unitPrice     Float
+  total         Float
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  orderId       String
+  order         Order   @relation(fields: [orderId], references: [id])
+  
+  productId     String
+  product       Product @relation(fields: [productId], references: [id])
+}
