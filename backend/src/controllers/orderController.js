@@ -156,30 +156,49 @@ const updateOrder = async (req, res) => {
       return res.status(404).json({ error: 'Order not found' });
     }
     
+    // Define valid status transitions
+    const validTransitions = {
+      PENDING: ['CONFIRMED', 'CANCELLED'],
+      CONFIRMED: ['SHIPPED', 'CANCELLED'],
+      SHIPPED: ['DELIVERED', 'CANCELLED'],
+      DELIVERED: [],
+      CANCELLED: []
+    };
+    
     // Update status if provided
+    let updateData = {};
     if (status) {
-      // Validate status transition
       const currentStatus = order.status;
       if (status !== currentStatus) {
-        // Implement status transition logic here
-        // For example, PENDING -> CONFIRMED
-        if (currentStatus === 'PENDING' && status === 'CONFIRMED') {
-          // Update status
-          order.status = status;
-        } else {
+        // Validate status transition
+        if (!validTransitions[currentStatus]?.includes(status)) {
           return res.status(400).json({ error: 'Invalid status transition' });
         }
+        updateData.status = status;
       }
     }
     
     // Update notes if provided
     if (notes) {
-      order.notes = notes;
+      updateData.notes = notes;
     }
     
-    await order.save();
+    // Update order using Prisma
+    const updatedOrder = await prisma.order.update({
+      where: { id },
+      data: updateData,
+      include: {
+        user: true,
+        supplier: true,
+        items: {
+          include: {
+            product: true
+          }
+        }
+      }
+    });
     
-    res.json(order);
+    res.json(updatedOrder);
   } catch (error) {
     console.error('Update order error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -209,7 +228,9 @@ const deleteOrder = async (req, res) => {
       });
     }
     
-    await order.delete();
+    await prisma.order.delete({
+      where: { id }
+    });
     
     res.json({ message: 'Order deleted successfully' });
   } catch (error) {

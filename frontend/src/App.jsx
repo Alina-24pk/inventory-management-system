@@ -3,7 +3,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { NotificationProvider } from './context/NotificationContext';
 import { ThemeProvider } from './context/ThemeContext';
-import { ApiProvider } from './services/ApiService';
+
 import Layout from './components/layout/MainLayout';
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
@@ -57,11 +57,11 @@ const App = () => {
     <ThemeProvider>
       <AuthProvider>
         <NotificationProvider>
-          <ApiProvider>
+          
             <Router>
               <AppContent />
             </Router>
-          </ApiProvider>
+          
         </NotificationProvider>
       </AuthProvider>
     </ThemeProvider>

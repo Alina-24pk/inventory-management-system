@@ -1,0 +1,1 @@
+const express = require('express'); const router = express.Router(); const { getDashboardStats, getLowStockAlerts, getRecentActivity } = require('../controllers/dashboardController'); router.get('/stats', getDashboardStats); router.get('/low-stock-alerts', getLowStockAlerts); router.get('/recent-activity', getRecentActivity); module.exports = router;

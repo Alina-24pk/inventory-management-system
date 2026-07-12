@@ -2,83 +2,29 @@ const prisma = require('../lib/prisma');
 
 const getDashboardStats = async (req, res) => {
   try {
-    const [
-      totalProducts,
-      totalCategories,
-      totalSuppliers,
-      totalOrders,
-      lowStockProducts,
-      recentOrders,
-      recentMovements
-    ] = await Promise.all([
-      prisma.product.count({ where: { isActive: true } }),
+    const threshold = parseInt(req.query.threshold) || 10;
+
+    const [totalProducts, totalCategories, totalSuppliers, totalOrders, lowStockCount] = await Promise.all([
+      prisma.product.count(),
       prisma.category.count(),
       prisma.supplier.count(),
       prisma.order.count(),
       prisma.product.findMany({
         where: {
-          isActive: true,
-          inventory: {
-            quantity: { lte: 10 } // Simplified condition for demo
-          }
+          minStock: { lte: threshold }
         }
-      }),
-      prisma.order.findMany({
-        take: 5,
-        orderBy: { orderDate: 'desc' },
-        include: {
-          user: { select: { name: true } },
-          supplier: { select: { name: true } }
-        }
-      }),
-      prisma.stockMovement.findMany({
-        take: 10,
-        orderBy: { createdAt: 'desc' },
-        include: {
-          product: { select: { name: true, sku: true } },
-          user: { select: { name: true } }
-        }
-      })
+      }).then(products => products.length)
     ]);
 
-    // Get inventory value
-    const inventory = await prisma.inventory.findMany({
-      include: { product: true }
-    });
-    
-    const totalInventoryValue = inventory.reduce(
-      (sum, item) => sum + (item.product.price * item.quantity), 0
-    );
+    const stats = {
+      totalProducts,
+      totalCategories,
+      totalSuppliers,
+      totalOrders,
+      lowStockCount
+    };
 
-    // Get orders by status
-    const ordersByStatus = await prisma.order.groupBy({
-      by: ['status'],
-      _count: { status: true }
-    });
-
-    // Get low stock count
-    const lowStockCount = await prisma.product.count({
-      where: {
-        isActive: true,
-        inventory: {
-          quantity: { lte: 10 } // Simplified condition for demo
-        }
-      }
-    });
-
-    res.json({
-      stats: {
-        totalProducts,
-        totalCategories,
-        totalSuppliers,
-        totalOrders,
-        totalInventoryValue,
-        lowStockCount
-      },
-      recentOrders,
-      recentMovements,
-      ordersByStatus
-    });
+    res.json(stats);
   } catch (error) {
     console.error('Get dashboard stats error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -87,22 +33,19 @@ const getDashboardStats = async (req, res) => {
 
 const getLowStockAlerts = async (req, res) => {
   try {
-    const products = await prisma.product.findMany({
+    const threshold = parseInt(req.query.threshold) || 10;
+    const lowStock = await prisma.product.findMany({
       where: {
-        isActive: true,
-        inventory: {
-          quantity: { lte: 10 } // Simplified condition for demo
-        }
+        minStock: { lte: threshold }
       },
       include: {
-        category: true,
         inventory: true,
+        category: true,
         supplier: true
-      },
-      orderBy: { inventory: { quantity: 'asc' } }
+      }
     });
 
-    res.json(products);
+    res.json(lowStock);
   } catch (error) {
     console.error('Get low stock alerts error:', error);
     res.status(500).json({ error: 'Internal server error' });
@@ -111,18 +54,16 @@ const getLowStockAlerts = async (req, res) => {
 
 const getRecentActivity = async (req, res) => {
   try {
-    const { limit = 20 } = req.query;
-    
-    const movements = await prisma.stockMovement.findMany({
-      take: parseInt(limit),
-      orderBy: { createdAt: 'desc' },
+    const recentOrders = await prisma.order.findMany({
+      orderBy: { orderDate: 'desc' },
+      take: 10,
       include: {
-        product: { select: { name: true, sku: true } },
-        user: { select: { name: true, email: true } }
+        user: true,
+        status: true
       }
     });
 
-    res.json(movements);
+    res.json(recentOrders);
   } catch (error) {
     console.error('Get recent activity error:', error);
     res.status(500).json({ error: 'Internal server error' });
