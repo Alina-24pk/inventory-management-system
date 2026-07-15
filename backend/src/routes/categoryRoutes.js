@@ -1,16 +1,21 @@
-const express = require('express');
-const { auth, authorize } = require('../middleware/auth');
-const { categoryController } = require('../controllers');
+import express from 'express';
+import categoryController from '../controllers/categoryController.js';
 
 const router = express.Router();
 
-// Public routes
+// GET all categories
 router.get('/', categoryController.getAllCategories);
+
+// GET single category by ID
 router.get('/:id', categoryController.getCategoryById);
 
-// Protected routes (admin and manager)
-router.post('/', auth, authorize(['ADMIN', 'MANAGER']), categoryController.createCategory);
-router.put('/:id', auth, authorize(['ADMIN', 'MANAGER']), categoryController.updateCategory);
-router.delete('/:id', auth, authorize(['ADMIN', 'MANAGER']), categoryController.deleteCategory);
+// POST new category
+router.post('/', categoryController.createCategory);
 
-module.exports = router;
+// PUT update category
+router.put('/:id', categoryController.updateCategory);
+
+// DELETE category
+router.delete('/:id', categoryController.deleteCategory);
+
+export default router;
