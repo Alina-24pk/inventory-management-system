@@ -1,5 +1,4 @@
-import prisma from '../lib/prisma';
-
+const prisma = require('../lib/prisma');
 const createCategory = async (req, res) => {
   try {
     const { name } = req.body;
@@ -107,10 +106,11 @@ const deleteCategory = async (req, res) => {
   }
 };
 
-export default {
+module.exports = {
   createCategory,
   getAllCategories,
   getCategoryById,
   updateCategory,
   deleteCategory,
 };
+
