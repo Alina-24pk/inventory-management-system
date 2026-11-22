@@ -227,7 +227,7 @@ const InventoryPage = () => {
             </button>
           </div>
         </div>
-          </div>
+      </div>
 
         {loading ? (
           <div className="p-6">
